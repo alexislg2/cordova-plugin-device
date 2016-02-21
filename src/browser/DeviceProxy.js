@@ -19,7 +19,6 @@
  *
  */
 var browser = require('cordova/platform');
-var cordova = require('cordova');
 
 function getPlatform() {
     return "browser";
@@ -35,7 +34,8 @@ function getVersion() {
 
 function getBrowserInfo(getModel) {
     var userAgent = navigator.userAgent;
-    var returnVal;
+    var returnVal = '';
+    var offset;
 
     if ((offset = userAgent.indexOf('Chrome')) !== -1) {
         returnVal = (getModel) ? 'Chrome' : userAgent.substring(offset + 7);
@@ -51,6 +51,10 @@ function getBrowserInfo(getModel) {
         }
     } else if ((offset = userAgent.indexOf('Firefox')) !== -1) {
         returnVal = (getModel) ? 'Firefox' : userAgent.substring(offset + 8);
+    } else if ((offset = userAgent.indexOf('MSIE')) !== -1) {
+        returnVal = (getModel) ? 'MSIE' : userAgent.substring(offset + 5);
+    } else if ((offset = userAgent.indexOf('Trident')) !== -1) {
+        returnVal = (getModel) ? 'MSIE' : '11';
     }
 
     if ((offset = returnVal.indexOf(';')) !== -1 || (offset = returnVal.indexOf(' ')) !== -1) {

@@ -19,6 +19,7 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include "TargetConditionals.h"
 
 #import <Cordova/CDV.h>
 #import "CDVDevice.h"
@@ -45,6 +46,23 @@
 
 @implementation CDVDevice
 
+- (NSString*)uniqueAppInstanceIdentifier:(UIDevice*)device
+{
+    NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+    static NSString* UUID_KEY = @"CDVUUID";
+    
+    // Check user defaults first to maintain backwards compaitibility with previous versions
+    // which didn't user identifierForVendor
+    NSString* app_uuid = [userDefaults stringForKey:UUID_KEY];
+    if (app_uuid == nil) {
+        app_uuid = [[device identifierForVendor] UUIDString];
+        [userDefaults setObject:app_uuid forKey:UUID_KEY];
+        [userDefaults synchronize];
+    }
+    
+    return app_uuid;
+}
+
 - (void)getDeviceInfo:(CDVInvokedUrlCommand*)command
 {
     NSDictionary* deviceProperties = [self deviceProperties];
@@ -56,21 +74,32 @@
 - (NSDictionary*)deviceProperties
 {
     UIDevice* device = [UIDevice currentDevice];
-    NSMutableDictionary* devProps = [NSMutableDictionary dictionaryWithCapacity:4];
 
-    [devProps setObject:[device modelVersion] forKey:@"model"];
-    [devProps setObject:@"iOS" forKey:@"platform"];
-    [devProps setObject:[device systemVersion] forKey:@"version"];
-    [devProps setObject:[device uniqueAppInstanceIdentifier] forKey:@"uuid"];
-    [devProps setObject:[[self class] cordovaVersion] forKey:@"cordova"];
-
-    NSDictionary* devReturn = [NSDictionary dictionaryWithDictionary:devProps];
-    return devReturn;
+    return @{
+             @"manufacturer": @"Apple",
+             @"model": [device modelVersion],
+             @"platform": @"iOS",
+             @"version": [device systemVersion],
+             @"uuid": [self uniqueAppInstanceIdentifier:device],
+             @"cordova": [[self class] cordovaVersion],
+             @"isVirtual": @([self isVirtual])
+             };
 }
 
 + (NSString*)cordovaVersion
 {
     return CDV_VERSION;
+}
+
+- (BOOL)isVirtual
+{
+    #if TARGET_OS_SIMULATOR
+        return true;
+    #elif TARGET_IPHONE_SIMULATOR
+        return true;
+    #else
+        return false;
+    #endif
 }
 
 @end
